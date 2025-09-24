@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Продукт — подробнее (fetch)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--bg:#0b2d63;--line:#3a67b5;--text:#eef3ff;--muted:#b8c7f1;--card:#0e3b78;--card2:#114a98;--accent:#2b7cff;--accent2:#4d93ff}
+    *{box-sizing:border-box} body{margin:0;font:15px/1.45 system-ui;background:#0b2d63 linear-gradient(180deg,#0b2d63,#0a3f8a 55%,#0b2d63);color:var(--text)}
+    a{color:inherit;text-decoration:none}
+    header{position:sticky;top:0;background:#092a5ae6;border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+    .wrap{max-width:900px;margin:0 auto;padding:14px 18px;display:flex;gap:12px;align-items:center}.sp{flex:1}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text)}
+    .btn:hover{background:#0a3f8a77}.btn.acc{background:var(--accent);border-color:transparent;color:#061933}
+    main{max-width:900px;margin:0 auto;padding:22px}
+    .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 10px 24px rgba(0,0,0,.18)}
+    .head{display:flex;gap:18px;align-items:center;padding:18px;border-bottom:1px solid var(--line)}
+    .glyph-lg{width:110px;height:110px;border-radius:999px;border:1px solid var(--line);background:#0b2f66;display:grid;place-items:center;font-size:56px}
+    .pad{padding:18px}.badge{font-size:12px;color:var(--muted)} .price{font-weight:800;margin-left:12px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <strong>Продукт</strong><div class="sp"></div>
+    <a class="btn" href="index.html">Домой</a>
+    <a id="editLink" class="btn acc" href="#">Править</a>
+  </div>
+</header>
+
+<main id="root">Загрузка…</main>
+
+<script>
+const API = 'http://localhost:5001/api/products';
+const id  = new URLSearchParams(location.search).get('id');
+
+const money = x => new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(x);
+
+async function load(){
+  const r = await fetch(`${API}/${encodeURIComponent(id)}`, {mode:'cors'});
+  if(!r.ok) throw new Error('load');
+  return r.json();
+}
+
+load().then(it=>{
+  document.getElementById('editLink').href = `edit.html?id=${encodeURIComponent(it.id)}`;
+  document.getElementById('root').innerHTML = `
+    <section class="card">
+      <div class="head">
+        <div class="glyph-lg">${it.emoji||'🛒'}</div>
+        <div>
+          <h2 style="margin:0 0 6px 0">${it.name}</h2>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge">${it.category}</span>
+            <span class="price">${money(it.price)}</span>
+          </div>
+          <div class="badge" style="margin-top:6px">ID: ${it.id}</div>
+        </div>
+      </div>
+      <div class="pad">
+        <p class="badge">Данные получены через fetch</p>
+      </div>
+    </section>`;
+}).catch(()=>{
+  document.getElementById('root').textContent = 'Ошибка загрузки.';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>ЛР-5 · Продукты · Значки (XHR)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--bg:#0b2d63;--line:#3a67b5;--text:#eef3ff;--muted:#b8c7f1;--card:#0e3b78;--card2:#114a98;--accent:#2b7cff;--accent2:#4d93ff;--red:#ff3b30}
+    *{box-sizing:border-box} body{margin:0;font:15px/1.45 system-ui;background:#0b2d63 linear-gradient(180deg,#0b2d63,#0a3f8a 55%,#0b2d63);color:var(--text)}
+    a{color:inherit;text-decoration:none}
+    header{position:sticky;top:0;background:#092a5ae6;border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+    .wrap{max-width:1060px;margin:0 auto;padding:14px 18px;display:flex;gap:12px;align-items:center}
+    .sp{flex:1}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+    .btn:hover{background:#0a3f8a77}
+    .btn.acc{background:var(--accent);border-color:transparent;color:#061933}
+    .btn.acc:hover{background:var(--accent2)}
+    main{max-width:1060px;margin:0 auto;padding:18px}
+    .controls{display:flex;gap:12px;margin:8px 0 16px}
+    .in{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0a2f66;color:var(--text)}
+    .icons{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+    .icon-card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:12px;text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.15)}
+    .glyph{display:grid;place-items:center;font-size:34px;width:76px;height:76px;margin:0 auto 8px;border-radius:50%;background:#0b2f66;border:1px solid var(--line)}
+    .badge{font-size:12px;color:var(--muted)} .price{font-weight:800;margin-top:2px}
+    .tag{display:inline-block;background:var(--red);color:#fff;font-size:11px;padding:2px 6px;border-radius:6px;margin-bottom:6px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <strong>ЛР-5 · Продукты</strong>
+    <div class="sp"></div>
+    <a class="btn" href="index.html">Домой</a>
+    <a class="btn acc" href="edit.html">Добавить</a>
+  </div>
+</header>
+
+<main>
+  <div class="controls">
+    <input id="q" class="in" placeholder="Фильтр: название / категория" />
+  </div>
+  <section id="icons" class="icons"></section>
+</main>
+
+<script>
+const API = 'http://localhost:5001/api/products';
+
+// --- маленькие утилиты XHR ---
+function getJSON(url){ return new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open('GET',url,true); x.responseType='json'; x.onload=()=> x.status>=200&&x.status<300 ? res(x.response) : rej(new Error(x.status)); x.onerror=()=>rej(new Error('network')); x.send(); });}
+function sendJSON(method,url,body){ return new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open(method,url,true); x.setRequestHeader('Content-Type','application/json'); x.responseType='json'; x.onload=()=> x.status>=200&&x.status<300 ? res(x.response) : rej(new Error(x.status)); x.onerror=()=>rej(new Error('network')); x.send(JSON.stringify(body)); });}
+
+const grid = document.getElementById('icons');
+const input = document.getElementById('q');
+
+function money(x){ return new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0}).format(x); }
+function card(it){ return `
+  <article class="icon-card" data-id="${it.id}">
+    <div class="tag">товар</div>
+    <a class="glyph" href="details.html?id=${encodeURIComponent(it.id)}">${it.emoji||'🛒'}</a>
+    <div style="font-weight:700">${it.name}</div>
+    <div class="badge">${it.category}</div>
+    <div class="price">${money(it.price)}</div>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <a class="btn" href="details.html?id=${encodeURIComponent(it.id)}">Подробнее</a>
+      <a class="btn" href="edit.html?id=${encodeURIComponent(it.id)}">Править</a>
+      <button class="btn" data-action="rm">Удалить</button>
+    </div>
+  </article>`; }
+
+function loadAndRender(){
+  const q = input.value.trim();
+  const url = q ? `${API}?query=${encodeURIComponent(q)}` : API;
+  getJSON(url).then(data=>{
+    const list = Array.isArray(data) ? data : (data.items||[]);
+    grid.innerHTML = list.map(card).join('');
+  }).catch(()=>{ grid.innerHTML = `<p>Ошибка загрузки. Включи CORS Unblock и перезагрузи.</p>`; });
+}
+
+input.addEventListener('input', ()=>loadAndRender());
+
+grid.addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-action="rm"]'); if(!btn) return;
+  const id = btn.closest('.icon-card').dataset.id;
+  const x = new XMLHttpRequest();
+  x.open('DELETE', `${API}/${encodeURIComponent(id)}`, true);
+  x.onload = ()=> loadAndRender();
+  x.onerror = ()=> alert('Ошибка сети');
+  x.send();
+});
+
+loadAndRender();
+</script>
+</body>
+</html>

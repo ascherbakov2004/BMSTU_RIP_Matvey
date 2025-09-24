@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>ЛР-5 · Добавить / Редактировать (XHR)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--bg:#0b2d63;--line:#3a67b5;--text:#eef3ff;--muted:#b8c7f1;--accent:#2b7cff;--accent2:#4d93ff}
+    *{box-sizing:border-box} body{margin:0;font:15px/1.45 system-ui;background:#0b2d63 linear-gradient(180deg,#0b2d63,#0a3f8a 55%,#0b2d63);color:var(--text)}
+    a{color:inherit;text-decoration:none}
+    header{position:sticky;top:0;background:#092a5ae6;border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+    .wrap{max-width:720px;margin:0 auto;padding:14px 18px;display:flex;gap:12px;align-items:center}.sp{flex:1}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--text);cursor:pointer}
+    .btn:hover{background:#0a3f8a77}.btn.acc{background:var(--accent);border-color:transparent;color:#061933}
+    .btn.acc:hover{background:var(--accent2)}
+    main{max-width:720px;margin:0 auto;padding:22px}
+    form{display:grid;gap:12px;background:rgba(10,63,138,.25);border:1px solid var(--line);border-radius:14px;padding:16px}
+    label{display:grid;gap:6px}
+    input{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0a2f66;color:var(--text)}
+    .row{display:flex;gap:12px;align-items:center}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <strong>Добавить / Редактировать</strong><div class="sp"></div>
+    <a class="btn" href="index.html">К списку</a>
+  </div>
+</header>
+
+<main>
+  <form id="f">
+    <label>Название<input name="name" required placeholder="Напр. Банан" /></label>
+    <label>Категория<input name="category" required placeholder="фрукты / молочное" /></label>
+    <label>Цена (RUB)<input name="price" required type="number" min="0" step="1" /></label>
+    <label>Emoji<input name="emoji" required placeholder="🍌" /></label>
+    <div class="row">
+      <button class="btn acc" type="submit">Сохранить</button>
+      <a class="btn" id="cancel" href="index.html">Отмена</a>
+      <span id="status" class="row" style="color:var(--muted)"></span>
+    </div>
+  </form>
+</main>
+
+<script>
+const API='http://localhost:5001/api/products';
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
+
+function getJSON(url){ return new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open('GET',url,true); x.responseType='json'; x.onload=()=>x.status>=200&&x.status<300?res(x.response):rej(new Error(x.status)); x.onerror=()=>rej(new Error('net')); x.send(); });}
+function sendJSON(method,url,body){ return new Promise((res,rej)=>{ const x=new XMLHttpRequest(); x.open(method,url,true); x.setRequestHeader('Content-Type','application/json'); x.responseType='json'; x.onload=()=>x.status>=200&&x.status<300?res(x.response):rej(new Error(x.status)); x.onerror=()=>rej(new Error('net')); x.send(JSON.stringify(body)); });}
+
+const form = document.getElementById('f');
+const statusEl = document.getElementById('status');
+
+if(id){
+  // режим редактирования — подтянем текущие данные
+  getJSON(`${API}/${encodeURIComponent(id)}`).then(it=>{
+    form.name.value = it.name;
+    form.category.value = it.category;
+    form.price.value = it.price;
+    form.emoji.value = it.emoji || '🛒';
+  }).catch(()=> statusEl.textContent = 'Ошибка загрузки. Включи CORS Unblock.');
+}
+
+form.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const body = {
+    name: form.name.value.trim(),
+    category: form.category.value.trim(),
+    price: Number(form.price.value),
+    emoji: form.emoji.value.trim()
+  };
+  const req = id ? sendJSON('PUT', `${API}/${encodeURIComponent(id)}`, body)
+                 : sendJSON('POST', API, body);
+
+  statusEl.textContent = 'Сохраняю…';
+  req.then(obj=>{
+    statusEl.textContent = 'Готово.';
+    // переход: на детали для существующего, на список для нового
+    location.href = id ? `details.html?id=${encodeURIComponent(id)}` : 'index.html';
+  }).catch(err=>{
+    statusEl.textContent = 'Ошибка сохранения (проверь CORS).';
+    console.error(err);
+  });
+});
+</script>
+</body>
+</html>
